@@ -39,11 +39,6 @@
       border: 1px solid #ccc;
       border-radius: 8px;
     }
-    .filter-box {
-      display: flex;
-      justify-content: space-between;
-      margin: 20px 0;
-    }
     .checkbox-item {
       display: flex;
       align-items: center;
@@ -79,6 +74,12 @@
       margin-top: 10px;
       color: red;
     }
+    .loading {
+      text-align: center;
+      font-size: 18px;
+      color: #007bff;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -92,18 +93,17 @@
 
   <form id="form">
     <input type="hidden" id="resumeUrl" />
+    
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." />
     </div>
 
-    <!-- Bộ lọc nền tảng -->
-    <div class="filter-box">
-      <button type="button" id="facebookFilter">Facebook</button>
-      <button type="button" id="instagramFilter">Instagram</button>
-      <button type="button" id="tiktokFilter">Tiktok</button>
-    </div>
+    <div id="loadingMessage" class="loading">Đang tải danh sách fanpage...</div>  <!-- Trạng thái loading -->
 
     <div id="pageContainer"></div>
+
+    <div id="selectAllContainer"></div>  <!-- Nút chọn/bỏ chọn tất cả -->
+
     <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
   </form>
 
@@ -140,6 +140,9 @@
   function renderForm(data) {
     const { pages, iconMap } = data;
     const pageContainer = document.getElementById("pageContainer");
+    const loadingMessage = document.getElementById("loadingMessage");
+
+    loadingMessage.style.display = "none";  // Ẩn trạng thái loading khi hoàn thành tải danh sách
 
     if (!pages || pages.length === 0) {
       pageContainer.innerHTML = "<div style='color: red;'>❌ Không có fanpage nào.</div>";
@@ -154,7 +157,10 @@
       grouped[page.platform].push(page);
     });
 
-    // Render các platform
+    const selectAllContainer = document.getElementById("selectAllContainer");
+    selectAllContainer.innerHTML = "";  // Reset vùng chọn "Tất cả"
+
+    // Render các nền tảng (Facebook/Instagram/Tiktok)
     for (const platform in grouped) {
       const group = grouped[platform];
       const groupElement = document.createElement('div');
@@ -162,6 +168,15 @@
 
       const icon = iconMap[platform];
       groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
+
+      // Nút chọn/bỏ chọn tất cả
+      const selectAllButton = document.createElement('button');
+      selectAllButton.className = 'btn-submit';
+      selectAllButton.innerHTML = `Chọn tất cả ${platform}`;
+      selectAllButton.addEventListener("click", () => selectAll(platform));
+
+      selectAllContainer.appendChild(selectAllButton);
+      selectAllContainer.appendChild(document.createElement("br"));  // Dòng trống giữa các nút chọn
 
       group.forEach(page => {
         const pageElement = document.createElement('label');
@@ -176,25 +191,9 @@
       pageContainer.appendChild(groupElement);
     }
 
-    // Sự kiện chọn nền tảng
-    document.getElementById("facebookFilter").addEventListener("click", () => filterByPlatform('Facebook'));
-    document.getElementById("instagramFilter").addEventListener("click", () => filterByPlatform('Instagram'));
-    document.getElementById("tiktokFilter").addEventListener("click", () => filterByPlatform('Tiktok'));
-    
-    // Sự kiện tìm kiếm
-    document.getElementById("searchInput").addEventListener("input", filterPages);
-
-    // Cập nhật sự kiện chọn
+    // Cập nhật sự kiện cho checkbox
     document.querySelectorAll("input[name='pages']").forEach(cb => {
       cb.addEventListener("change", updateHighlight);
-    });
-  }
-
-  // Bộ lọc theo nền tảng
-  function filterByPlatform(platform) {
-    document.querySelectorAll(".group").forEach(group => {
-      const platformName = group.querySelector('h3').innerText;
-      group.style.display = platformName.includes(platform) ? 'block' : 'none';
     });
   }
 
@@ -206,14 +205,22 @@
     });
   }
 
+  // Chọn tất cả checkbox trong một nhóm
+  function selectAll(platform) {
+    document.querySelectorAll(`.group h3:contains(${platform}) + div .checkbox-item input`).forEach(cb => {
+      cb.checked = true;
+      updateHighlight();
+    });
+  }
+
   // Lọc fanpage theo từ khóa
-  function filterPages(event) {
+  document.getElementById("searchInput").addEventListener("input", function(event) {
     const keyword = event.target.value.toLowerCase();
     document.querySelectorAll(".checkbox-item").forEach(item => {
       const name = item.innerText.toLowerCase();
       item.style.display = name.includes(keyword) ? 'block' : 'none';
     });
-  }
+  });
 
   // Xử lý khi submit form
   document.getElementById("form").addEventListener("submit", function (e) {
