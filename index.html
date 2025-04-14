@@ -133,26 +133,33 @@
 </div>
 
 <script>
-  const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
-  const params = new URLSearchParams(window.location.search);
-  const resumeUrl = params.get("resumeUrl");
+  const apiUrl = new URLSearchParams(window.location.search).get("resumeUrl")
+    ? "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec" // ✅ Dùng đúng url bạn đã sửa
+    : null;
+
+  const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
   document.getElementById("resumeUrl").value = resumeUrl;
 
-  if (!resumeUrl) alert("Không có resumeUrl. Vui lòng kiểm tra lại URL.");
-
-  let allPages = [];
-
-  fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-    .then(res => res.json())
-    .then(data => {
-      allPages = data.pages || [];
-      renderForm(data);
-      document.getElementById("searchInput").focus();
-    });
+  if (!resumeUrl || !apiUrl) {
+    document.getElementById("pageContainer").innerHTML = "<p style='color:red'>❌ Không có resumeUrl hoặc apiUrl.</p>";
+  } else {
+    document.getElementById("pageContainer").innerHTML = "<p>⏳ Đang tải danh sách fanpage...</p>";
+    fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        allPages = data.pages || [];
+        renderForm(data);
+        document.getElementById("searchInput").focus();
+      })
+      .catch(() => {
+        document.getElementById("pageContainer").innerHTML = "<p style='color:red'>❌ Không thể lấy danh sách page.</p>";
+      });
+  }
 
   function renderForm(data) {
     const { pages, iconMap } = data;
     const pageContainer = document.getElementById("pageContainer");
+    pageContainer.innerHTML = ""; // Xoá "đang tải..."
 
     const grouped = {};
     pages.forEach(p => {
@@ -163,15 +170,22 @@
     for (const platform in grouped) {
       const group = grouped[platform];
       const icon = iconMap[platform];
+      const groupId = `group-${platform.toLowerCase()}`;
+
       const groupDiv = document.createElement('div');
       groupDiv.className = 'group';
-      groupDiv.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
+      groupDiv.innerHTML = `
+        <h3>
+          <img src="${icon}" width="20" /> ${platform}
+          <a href="#" style="font-size:13px; margin-left: auto;" onclick="toggleGroup('${platform}', true); return false;">Chọn tất cả</a> |
+          <a href="#" style="font-size:13px;" onclick="toggleGroup('${platform}', false); return false;">Bỏ chọn</a>
+        </h3>`;
 
       group.forEach(page => {
         const div = document.createElement('label');
         div.className = 'checkbox-item';
         div.innerHTML = `
-          <input type="checkbox" name="pages" value="${page.name}|${page.id}" onchange="updateSelectedList()">
+          <input type="checkbox" name="pages" data-group="${platform}" value="${page.name}|${page.id}" onchange="updateSelectedList()">
           <a href="${page.url}" target="_blank">${page.displayName}</a>
         `;
         groupDiv.appendChild(div);
@@ -181,53 +195,12 @@
     }
   }
 
-  function updateSelectedList() {
-    const selected = Array.from(document.querySelectorAll('input[name="pages"]:checked'));
-    const selectedContainer = document.getElementById("selectedContainer");
-    const list = document.getElementById("selectedList");
-
-    if (selected.length === 0) {
-      selectedContainer.style.display = "none";
-      list.innerHTML = "";
-      return;
-    }
-
-    selectedContainer.style.display = "block";
-    list.innerHTML = selected.map(cb => {
-      const label = cb.nextElementSibling?.innerText || cb.value;
-      return `<div>• ${label}</div>`;
-    }).join("");
-  }
-
-  function toggleSelectAll(state) {
-    document.querySelectorAll('input[name="pages"]').forEach(cb => {
+  function toggleGroup(group, state) {
+    document.querySelectorAll(`input[data-group='${group}']`).forEach(cb => {
       cb.checked = state;
     });
     updateSelectedList();
   }
-
-  document.getElementById("form").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
-
-    if (!selectedPages.length) {
-      document.getElementById("messageBox").innerHTML = "⚠️ Vui lòng chọn ít nhất một fanpage.";
-      return;
-    }
-
-    fetch(resumeUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pages: selectedPages })
-    })
-    .then(() => {
-      document.getElementById("messageBox").innerHTML = "✅ Gửi thành công! Tab sẽ đóng sau 3 giây.";
-      setTimeout(() => window.close(), 3000);
-    })
-    .catch(() => {
-      document.getElementById("messageBox").innerHTML = "❌ Gửi thất bại.";
-    });
-  });
 </script>
 
 </body>
