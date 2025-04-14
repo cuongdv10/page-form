@@ -1,9 +1,12 @@
+// ===============================
+// 📄 File: index.html (render từ GitHub Pages, lấy dữ liệu động)
+// ===============================
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chọn Fanpage</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
@@ -42,32 +45,71 @@
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage...">
       </div>
-      <div class="group">
-        <h3><span><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" />Facebook</span></h3>
-        <label class="checkbox-item" data-name="tocnoi">
-          <input type="checkbox" name="pages" value="facebook-tool-tocnoi|123"> <a href="#" target="_blank">Tocnoi.vn - Chuyên tóc nối thật Cao Cấp</a>
-        </label>
-        <label class="checkbox-item" data-name="hanoi">
-          <input type="checkbox" name="pages" value="facebook-tool-tocnoihanoi|456"> <a href="#" target="_blank">Tóc nối Hà Nội - Xưởng tóc nối giá rẻ</a>
-        </label>
-      </div>
+      <div id="pageContainer"></div>
       <input type="submit" value="Tiếp tục">
     </form>
   </div>
+
   <script>
-    document.getElementById('searchInput').addEventListener('input', function () {
+    const API_URL = "https://script.google.com/macros/s/AKfycbxEocct1C6Sl9UW_8d5fLJ5rGwftLcbzSeDre3FuxKtVN_uIUqe3QIOUfnfOr4aTbnW/exec";
+    const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
+    document.getElementById("resumeUrl").value = resumeUrl || "";
+
+    function getPlatformIcon(platform) {
+      platform = platform.toLowerCase();
+      if (platform.includes("facebook")) return 'https://cdn-icons-png.flaticon.com/512/733/733547.png';
+      if (platform.includes("instagram")) return 'https://cdn-icons-png.flaticon.com/512/2111/2111463.png';
+      if (platform.includes("tiktok")) return 'https://cdn-icons-png.flaticon.com/512/3046/3046122.png';
+      return '';
+    }
+
+    function renderPages(pages) {
+      const container = document.getElementById("pageContainer");
+      const grouped = {};
+      pages.forEach(p => {
+        if (!grouped[p.platform]) grouped[p.platform] = [];
+        grouped[p.platform].push(p);
+      });
+
+      for (const platform in grouped) {
+        const icon = getPlatformIcon(platform);
+        const groupEl = document.createElement("div");
+        groupEl.className = "group";
+        groupEl.innerHTML = `<h3><span><img src="${icon}" />${platform}</span></h3>`;
+        grouped[platform].forEach(p => {
+          const item = document.createElement("label");
+          item.className = "checkbox-item";
+          item.dataset.name = p.displayName.toLowerCase();
+          item.innerHTML = `
+            <input type="checkbox" name="pages" value="${p.name}|${p.id}">
+            <a href="${p.url}" target="_blank">${p.displayName}</a>`;
+          groupEl.appendChild(item);
+        });
+        container.appendChild(groupEl);
+      }
+    }
+
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(renderPages)
+      .catch(err => {
+        alert("❌ Không thể tải danh sách page.");
+        console.error(err);
+      });
+
+    document.getElementById("searchInput").addEventListener("input", function () {
       const keyword = this.value.trim().toLowerCase();
-      document.querySelectorAll('.checkbox-item').forEach(item => {
+      document.querySelectorAll(".checkbox-item").forEach(item => {
         const name = item.dataset.name;
-        item.style.display = name.includes(keyword) ? 'flex' : 'none';
+        item.style.display = name.includes(keyword) ? "flex" : "none";
       });
     });
 
-    document.getElementById('pageForm').addEventListener('submit', function (e) {
+    document.getElementById("pageForm").addEventListener("submit", function (e) {
       e.preventDefault();
       const form = e.target;
-      const resumeUrl = document.getElementById('resumeUrl').value;
-      const checked = form.querySelectorAll('input[name="pages"]:checked');
+      const resumeUrl = document.getElementById("resumeUrl").value;
+      const checked = form.querySelectorAll("input[name='pages']:checked");
       const pages = Array.from(checked).map(cb => cb.value);
       if (!resumeUrl || pages.length === 0) {
         alert("⚠️ Vui lòng chọn ít nhất 1 fanpage.");
@@ -78,11 +120,10 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pages })
       }).then(() => {
-        form.innerHTML = `
-          <div style="text-align:center; padding: 40px;">
-            <div style="font-size: 22px; color: green;">✅ Gửi thành công!</div>
-            <div style="margin-top: 10px; font-size: 14px; opacity: 0.6;">Tab sẽ tự đóng sau 3 giây...</div>
-          </div>`;
+        form.innerHTML = `<div style='text-align:center; padding: 40px;'>
+          <div style='font-size: 22px; color: green;'>✅ Gửi thành công!</div>
+          <div style='margin-top: 10px; font-size: 14px; opacity: 0.6;'>Tab sẽ tự đóng sau 3 giây...</div>
+        </div>`;
         setTimeout(() => window.close(), 3000);
       }).catch(err => {
         alert("❌ Gửi thất bại. Vui lòng thử lại sau.");
