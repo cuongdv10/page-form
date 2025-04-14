@@ -98,10 +98,7 @@
       group.forEach(page => {
         const pageElement = document.createElement('label');
         pageElement.className = 'checkbox-item';
-        pageElement.innerHTML = `
-          <input type="checkbox" name="pages" value="${page.name}|${page.id}">
-          <a href="${page.url}" target="_blank">${page.displayName}</a>
-        `;
+        pageElement.innerHTML = `<input type="checkbox" name="pages" value="${page.name}|${page.id}"><a href="${page.url}" target="_blank">${page.displayName}</a>`;
         groupElement.appendChild(pageElement);
       });
 
