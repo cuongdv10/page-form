@@ -102,8 +102,6 @@
 
     <div id="pageContainer"></div>
 
-    <div id="selectAllContainer"></div>  <!-- Nút chọn/bỏ chọn tất cả -->
-
     <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
   </form>
 
@@ -157,9 +155,6 @@
       grouped[page.platform].push(page);
     });
 
-    const selectAllContainer = document.getElementById("selectAllContainer");
-    selectAllContainer.innerHTML = "";  // Reset vùng chọn "Tất cả"
-
     // Render các nền tảng (Facebook/Instagram/Tiktok)
     for (const platform in grouped) {
       const group = grouped[platform];
@@ -167,16 +162,7 @@
       groupElement.className = 'group';
 
       const icon = iconMap[platform];
-      groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
-
-      // Nút chọn/bỏ chọn tất cả
-      const selectAllButton = document.createElement('button');
-      selectAllButton.className = 'btn-submit';
-      selectAllButton.innerHTML = `Chọn tất cả ${platform}`;
-      selectAllButton.addEventListener("click", () => selectAll(platform));
-
-      selectAllContainer.appendChild(selectAllButton);
-      selectAllContainer.appendChild(document.createElement("br"));  // Dòng trống giữa các nút chọn
+      groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform} <button class="btn-submit select-all" data-platform="${platform}">Chọn tất cả</button></h3>`;
 
       group.forEach(page => {
         const pageElement = document.createElement('label');
@@ -191,9 +177,14 @@
       pageContainer.appendChild(groupElement);
     }
 
-    // Cập nhật sự kiện cho checkbox
+    // Cập nhật sự kiện cho checkbox và nút "Chọn tất cả"
     document.querySelectorAll("input[name='pages']").forEach(cb => {
       cb.addEventListener("change", updateHighlight);
+    });
+
+    // Thêm sự kiện cho nút "Chọn tất cả"
+    document.querySelectorAll('.select-all').forEach(button => {
+      button.addEventListener('click', () => toggleSelectAll(button.dataset.platform));
     });
   }
 
@@ -205,12 +196,26 @@
     });
   }
 
-  // Chọn tất cả checkbox trong một nhóm
-  function selectAll(platform) {
-    document.querySelectorAll(`.group h3:contains(${platform}) + div .checkbox-item input`).forEach(cb => {
-      cb.checked = true;
-      updateHighlight();
+  // Chọn hoặc bỏ chọn tất cả các fanpage trong một danh mục
+  function toggleSelectAll(platform) {
+    const checkboxes = document.querySelectorAll(`.group h3:contains(${platform}) + div input[name='pages']`);
+    const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
+
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = !isAllSelected;
     });
+
+    updateHighlight(); // Cập nhật các checkbox đã chọn
+    updateButton(platform); // Cập nhật trạng thái nút
+  }
+
+  // Cập nhật trạng thái của nút "Chọn tất cả"
+  function updateButton(platform) {
+    const button = document.querySelector(`.select-all[data-platform='${platform}']`);
+    const checkboxes = document.querySelectorAll(`.group h3:contains(${platform}) + div input[name='pages']`);
+    const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
+
+    button.textContent = isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả";
   }
 
   // Lọc fanpage theo từ khóa
