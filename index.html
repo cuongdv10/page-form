@@ -33,21 +33,14 @@
       margin-bottom: 20px;
     }
     .search-box {
-      display: flex;
-      gap: 12px;
       margin-bottom: 20px;
     }
     .search-box input {
-      flex: 1;
+      width: 100%;
       padding: 12px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 8px;
-    }
-    .actions {
-      text-align: right;
-      margin-bottom: 10px;
-      font-size: 14px;
     }
     .group h3 {
       font-size: 18px;
@@ -56,11 +49,15 @@
       align-items: center;
       gap: 8px;
     }
+    .group h3 a {
+      font-size: 13px;
+      margin-left: auto;
+      text-decoration: none;
+    }
     .checkbox-item {
       display: flex;
       align-items: center;
       margin: 8px 0;
-      padding: 4px 0;
     }
     .checkbox-item input[type="checkbox"] {
       margin-right: 10px;
@@ -104,19 +101,15 @@
 
 <div class="container">
   <div class="logo">
-    <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo" width="200">
+    <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo" />
   </div>
 
   <h2>📝 Chọn các Fanpage để đăng bài</h2>
 
   <form id="form">
-    <input type="hidden" id="resumeUrl" />
+    <input type="hidden" id="resumeUrl" name="resumeUrl" />
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." />
-      <div class="actions">
-        <a href="#" onclick="toggleSelectAll(true); return false;">Chọn tất cả</a> |
-        <a href="#" onclick="toggleSelectAll(false); return false;">Bỏ chọn tất cả</a>
-      </div>
+      <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." oninput="filterPages()" />
     </div>
 
     <div id="selectedContainer" class="selected-group" style="display:none;">
@@ -124,7 +117,9 @@
       <div id="selectedList"></div>
     </div>
 
-    <div id="pageContainer"></div>
+    <div id="pageContainer">
+      <p>⏳ Đang tải danh sách fanpage...</p>
+    </div>
     
     <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
   </form>
@@ -133,20 +128,18 @@
 </div>
 
 <script>
-  const apiUrl = new URLSearchParams(window.location.search).get("resumeUrl")
-    ? "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec" // ✅ Dùng đúng url bạn đã sửa
-    : null;
-
   const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
+  const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec"; // 🔁 Đổi thành URL Apps Script của bạn
   document.getElementById("resumeUrl").value = resumeUrl;
 
-  if (!resumeUrl || !apiUrl) {
-    document.getElementById("pageContainer").innerHTML = "<p style='color:red'>❌ Không có resumeUrl hoặc apiUrl.</p>";
+  let allPages = [];
+
+  if (!resumeUrl) {
+    document.getElementById("pageContainer").innerHTML = "<p style='color:red'>❌ Không có resumeUrl trong đường dẫn.</p>";
   } else {
-    document.getElementById("pageContainer").innerHTML = "<p>⏳ Đang tải danh sách fanpage...</p>";
     fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         allPages = data.pages || [];
         renderForm(data);
         document.getElementById("searchInput").focus();
@@ -159,7 +152,7 @@
   function renderForm(data) {
     const { pages, iconMap } = data;
     const pageContainer = document.getElementById("pageContainer");
-    pageContainer.innerHTML = ""; // Xoá "đang tải..."
+    pageContainer.innerHTML = "";
 
     const grouped = {};
     pages.forEach(p => {
@@ -174,16 +167,19 @@
 
       const groupDiv = document.createElement('div');
       groupDiv.className = 'group';
+      groupDiv.setAttribute('data-group', platform);
+
       groupDiv.innerHTML = `
         <h3>
           <img src="${icon}" width="20" /> ${platform}
-          <a href="#" style="font-size:13px; margin-left: auto;" onclick="toggleGroup('${platform}', true); return false;">Chọn tất cả</a> |
-          <a href="#" style="font-size:13px;" onclick="toggleGroup('${platform}', false); return false;">Bỏ chọn</a>
+          <a href="#" onclick="toggleGroup('${platform}', true); return false;">Chọn tất cả</a> |
+          <a href="#" onclick="toggleGroup('${platform}', false); return false;">Bỏ chọn</a>
         </h3>`;
 
       group.forEach(page => {
         const div = document.createElement('label');
         div.className = 'checkbox-item';
+        div.setAttribute('data-name', page.displayName.toLowerCase());
         div.innerHTML = `
           <input type="checkbox" name="pages" data-group="${platform}" value="${page.name}|${page.id}" onchange="updateSelectedList()">
           <a href="${page.url}" target="_blank">${page.displayName}</a>
@@ -201,6 +197,55 @@
     });
     updateSelectedList();
   }
+
+  function updateSelectedList() {
+    const selected = Array.from(document.querySelectorAll('input[name="pages"]:checked'));
+    const selectedContainer = document.getElementById("selectedContainer");
+    const list = document.getElementById("selectedList");
+
+    if (selected.length === 0) {
+      selectedContainer.style.display = "none";
+      list.innerHTML = "";
+      return;
+    }
+
+    selectedContainer.style.display = "block";
+    list.innerHTML = selected.map(cb => {
+      const label = cb.nextElementSibling?.innerText || cb.value;
+      return `<div>• ${label}</div>`;
+    }).join("");
+  }
+
+  function filterPages() {
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    document.querySelectorAll(".checkbox-item").forEach(el => {
+      const name = el.getAttribute("data-name");
+      el.style.display = name.includes(search) ? "flex" : "none";
+    });
+  }
+
+  document.getElementById("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
+
+    if (!selectedPages.length) {
+      document.getElementById("messageBox").innerHTML = "⚠️ Vui lòng chọn ít nhất một fanpage.";
+      return;
+    }
+
+    fetch(resumeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pages: selectedPages })
+    })
+    .then(() => {
+      document.getElementById("messageBox").innerHTML = "✅ Gửi thành công! Tab sẽ đóng sau 3 giây.";
+      setTimeout(() => window.close(), 3000);
+    })
+    .catch(() => {
+      document.getElementById("messageBox").innerHTML = "❌ Gửi thất bại.";
+    });
+  });
 </script>
 
 </body>
