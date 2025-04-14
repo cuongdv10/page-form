@@ -7,17 +7,17 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
+      background: #f8f9fa;
       margin: 0;
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
-      background: white;
+      background: #fff;
       border-radius: 12px;
       padding: 24px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     }
     .logo {
       text-align: center;
@@ -28,57 +28,75 @@
     }
     h2 {
       text-align: center;
-      font-size: 22px;
+      font-size: 24px;
+      color: #2c3e50;
       margin-bottom: 20px;
-      color: #333;
+    }
+    .search-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
     }
     .search-box input {
-      width: 100%;
+      flex: 1;
       padding: 12px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 8px;
     }
+    .actions {
+      text-align: right;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .group h3 {
+      font-size: 18px;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     .checkbox-item {
       display: flex;
       align-items: center;
-      margin: 10px 0;
-      padding: 8px 12px;
-      border-radius: 8px;
-      background-color: #f7f7f7;
-      transition: background 0.2s;
+      margin: 8px 0;
+      padding: 4px 0;
     }
-    .checkbox-item input {
+    .checkbox-item input[type="checkbox"] {
       margin-right: 10px;
+      transform: scale(1.2);
     }
-    .checkbox-item.selected {
-      background-color: #e3f6ff;
-      border: 1px solid #0099ff;
+    .checkbox-item a {
+      color: #333;
+      text-decoration: none;
+    }
+    .checkbox-item a:hover {
+      text-decoration: underline;
+    }
+    .selected-group {
+      background: #f1f9ff;
+      border: 1px dashed #007bff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 20px;
     }
     .btn-submit {
       width: 100%;
       padding: 14px;
-      background: #007bff;
+      background: #28a745;
       border: none;
       border-radius: 8px;
       color: white;
       font-size: 16px;
       cursor: pointer;
-      margin-top: 20px;
     }
     .btn-submit:hover {
-      background: #0056b3;
+      background: #218838;
     }
     .message-box {
       text-align: center;
-      margin-top: 10px;
+      margin-top: 12px;
       color: red;
-    }
-    .loading {
-      text-align: center;
-      font-size: 18px;
-      color: #007bff;
-      margin-top: 20px;
     }
   </style>
 </head>
@@ -93,15 +111,21 @@
 
   <form id="form">
     <input type="hidden" id="resumeUrl" />
-    
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." />
+      <div class="actions">
+        <a href="#" onclick="toggleSelectAll(true); return false;">Chọn tất cả</a> |
+        <a href="#" onclick="toggleSelectAll(false); return false;">Bỏ chọn tất cả</a>
+      </div>
     </div>
 
-    <div id="loadingMessage" class="loading">Đang tải danh sách fanpage...</div>  <!-- Trạng thái loading -->
+    <div id="selectedContainer" class="selected-group" style="display:none;">
+      <strong>✅ Đã chọn:</strong>
+      <div id="selectedList"></div>
+    </div>
 
     <div id="pageContainer"></div>
-
+    
     <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
   </form>
 
@@ -109,128 +133,81 @@
 </div>
 
 <script>
-  // Đảm bảo khai báo apiUrl đúng trước khi sử dụng
-  const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
-
-  // Lấy resumeUrl từ URL
+  const apiUrl = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
   const params = new URLSearchParams(window.location.search);
   const resumeUrl = params.get("resumeUrl");
   document.getElementById("resumeUrl").value = resumeUrl;
 
-  // Kiểm tra nếu không có resumeUrl
-  if (!resumeUrl) {
-    alert("Không có resumeUrl. Vui lòng kiểm tra lại URL.");
-  }
+  if (!resumeUrl) alert("Không có resumeUrl. Vui lòng kiểm tra lại URL.");
 
-  // Gửi yêu cầu tới API và xử lý dữ liệu
+  let allPages = [];
+
   fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
-      console.log("Dữ liệu từ API:", data);
+      allPages = data.pages || [];
       renderForm(data);
-    })
-    .catch(error => {
-      console.error("Lỗi khi tải dữ liệu từ API:", error);
-      document.getElementById("messageBox").innerHTML = "❌ Lỗi khi tải dữ liệu.";
+      document.getElementById("searchInput").focus();
     });
 
-  // Hàm render danh sách fanpage
   function renderForm(data) {
     const { pages, iconMap } = data;
     const pageContainer = document.getElementById("pageContainer");
-    const loadingMessage = document.getElementById("loadingMessage");
 
-    loadingMessage.style.display = "none";  // Ẩn trạng thái loading khi hoàn thành tải danh sách
+    const grouped = {};
+    pages.forEach(p => {
+      if (!grouped[p.platform]) grouped[p.platform] = [];
+      grouped[p.platform].push(p);
+    });
 
-    if (!pages || pages.length === 0) {
-      pageContainer.innerHTML = "<div style='color: red;'>❌ Không có fanpage nào.</div>";
+    for (const platform in grouped) {
+      const group = grouped[platform];
+      const icon = iconMap[platform];
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'group';
+      groupDiv.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
+
+      group.forEach(page => {
+        const div = document.createElement('label');
+        div.className = 'checkbox-item';
+        div.innerHTML = `
+          <input type="checkbox" name="pages" value="${page.name}|${page.id}" onchange="updateSelectedList()">
+          <a href="${page.url}" target="_blank">${page.displayName}</a>
+        `;
+        groupDiv.appendChild(div);
+      });
+
+      pageContainer.appendChild(groupDiv);
+    }
+  }
+
+  function updateSelectedList() {
+    const selected = Array.from(document.querySelectorAll('input[name="pages"]:checked'));
+    const selectedContainer = document.getElementById("selectedContainer");
+    const list = document.getElementById("selectedList");
+
+    if (selected.length === 0) {
+      selectedContainer.style.display = "none";
+      list.innerHTML = "";
       return;
     }
 
-    const grouped = {};
-    pages.forEach(page => {
-      if (!grouped[page.platform]) {
-        grouped[page.platform] = [];
-      }
-      grouped[page.platform].push(page);
-    });
-
-    // Render các nền tảng (Facebook/Instagram/Tiktok)
-    for (const platform in grouped) {
-      const group = grouped[platform];
-      const groupElement = document.createElement('div');
-      groupElement.className = 'group';
-
-      const icon = iconMap[platform];
-      groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform} <button class="btn-submit select-all" data-platform="${platform}">Chọn tất cả</button></h3>`;
-
-      group.forEach(page => {
-        const pageElement = document.createElement('label');
-        pageElement.className = 'checkbox-item';
-        pageElement.innerHTML = `
-          <input type="checkbox" name="pages" value="${page.name}|${page.id}">
-          <a href="${page.url}" target="_blank">${page.displayName}</a>
-        `;
-        groupElement.appendChild(pageElement);
-      });
-
-      pageContainer.appendChild(groupElement);
-    }
-
-    // Cập nhật sự kiện cho checkbox và nút "Chọn tất cả"
-    document.querySelectorAll("input[name='pages']").forEach(cb => {
-      cb.addEventListener("change", updateHighlight);
-    });
-
-    // Thêm sự kiện cho nút "Chọn tất cả"
-    document.querySelectorAll('.select-all').forEach(button => {
-      button.addEventListener('click', () => toggleSelectAll(button.dataset.platform));
-    });
+    selectedContainer.style.display = "block";
+    list.innerHTML = selected.map(cb => {
+      const label = cb.nextElementSibling?.innerText || cb.value;
+      return `<div>• ${label}</div>`;
+    }).join("");
   }
 
-  // Cập nhật danh sách đã chọn
-  function updateHighlight() {
-    document.querySelectorAll(".checkbox-item").forEach(label => {
-      const cb = label.querySelector("input");
-      label.classList.toggle("selected", cb.checked);
+  function toggleSelectAll(state) {
+    document.querySelectorAll('input[name="pages"]').forEach(cb => {
+      cb.checked = state;
     });
+    updateSelectedList();
   }
 
-  // Chọn hoặc bỏ chọn tất cả các fanpage trong một danh mục
-  function toggleSelectAll(platform) {
-    const checkboxes = document.querySelectorAll(`.group h3:contains(${platform}) + div input[name='pages']`);
-    const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
-
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = !isAllSelected;
-    });
-
-    updateHighlight(); // Cập nhật các checkbox đã chọn
-    updateButton(platform); // Cập nhật trạng thái nút
-  }
-
-  // Cập nhật trạng thái của nút "Chọn tất cả"
-  function updateButton(platform) {
-    const button = document.querySelector(`.select-all[data-platform='${platform}']`);
-    const checkboxes = document.querySelectorAll(`.group h3:contains(${platform}) + div input[name='pages']`);
-    const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
-
-    button.textContent = isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả";
-  }
-
-  // Lọc fanpage theo từ khóa
-  document.getElementById("searchInput").addEventListener("input", function(event) {
-    const keyword = event.target.value.toLowerCase();
-    document.querySelectorAll(".checkbox-item").forEach(item => {
-      const name = item.innerText.toLowerCase();
-      item.style.display = name.includes(keyword) ? 'block' : 'none';
-    });
-  });
-
-  // Xử lý khi submit form
   document.getElementById("form").addEventListener("submit", function (e) {
     e.preventDefault();
-
     const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
 
     if (!selectedPages.length) {
@@ -238,25 +215,17 @@
       return;
     }
 
-    const data = {
-      pages: selectedPages
-    };
-
-    // Gửi thông tin lên resumeUrl
     fetch(resumeUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pages: selectedPages })
     })
     .then(() => {
-      document.getElementById("messageBox").innerHTML = "✅ Dữ liệu đã được gửi thành công!";
-      setTimeout(() => window.close(), 3000); // Đóng cửa sổ sau 3 giây
+      document.getElementById("messageBox").innerHTML = "✅ Gửi thành công! Tab sẽ đóng sau 3 giây.";
+      setTimeout(() => window.close(), 3000);
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi dữ liệu:", error);
-      document.getElementById("messageBox").innerHTML = "❌ Đã xảy ra lỗi khi gửi dữ liệu.";
+    .catch(() => {
+      document.getElementById("messageBox").innerHTML = "❌ Gửi thất bại.";
     });
   });
 </script>
