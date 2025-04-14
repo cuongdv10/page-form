@@ -10,9 +10,8 @@
     .logo { text-align: center; margin-bottom: 24px; }
     .logo img { max-height: 60px; }
     h2 { text-align: center; font-size: 22px; margin-bottom: 20px; color: #333; }
-    .search-box { margin-bottom: 20px; }
     .search-box input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
-    .group h3 { font-size: 17px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .group h3 { font-size: 17px; display: flex; justify-content: space-between; align-items: center; margin: 20px 0 12px; }
     .group h3 img { width: 20px; margin-right: 6px; }
     .group h3 span { display: flex; align-items: center; }
     .checkbox-item { display: flex; align-items: center; background: #f7f7f7; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; transition: background 0.2s; }
@@ -33,7 +32,7 @@
     <div class="logo">
       <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo">
     </div>
-    <h2>📝 Chọn các page để đăng bài</h2>
+    <h2>📝 Chọn các Fanpage để đăng bài</h2>
     <form id="form">
       <input type="hidden" id="resumeUrl" />
       <div class="search-box">
@@ -47,13 +46,16 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
     const resumeUrl = params.get("resumeUrl");
+    const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
 
     document.getElementById("resumeUrl").value = resumeUrl;
 
     fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Lỗi khi lấy dữ liệu.");
+        return res.json();
+      })
       .then(data => renderForm(data))
       .catch(() => {
         document.getElementById("pageContainer").innerHTML = "<div style='color:red;'>❌ Không thể tải danh sách trang</div>";
@@ -71,7 +73,7 @@
         const icon = iconMap[platform] || "";
         const groupEl = document.createElement("div");
         groupEl.className = "group";
-        groupEl.innerHTML = `<h3><span><img src="${icon}"/> ${platform}</span> <span class="toggle-all" data-platform="${platform}" style="cursor:pointer;color:#007bff;font-size:14px;">Chọn tất cả</span></h3>`;
+        groupEl.innerHTML = `<h3><span><img src="${icon}"/> ${platform}</span></h3>`;
         grouped[platform].forEach(p => {
           const item = document.createElement("label");
           item.className = "checkbox-item";
@@ -82,15 +84,6 @@
         });
         container.appendChild(groupEl);
       }
-
-      document.querySelectorAll(".toggle-all").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const platform = btn.dataset.platform;
-          const checkboxes = document.querySelectorAll(\`.group:has(h3 span:contains('${platform}')) input[type='checkbox']\`);
-          const allChecked = Array.from(checkboxes).every(c => c.checked);
-          checkboxes.forEach(c => c.checked = !allChecked);
-        });
-      });
 
       document.querySelectorAll("input[name='pages']").forEach(cb => {
         cb.addEventListener("change", updateHighlight);
