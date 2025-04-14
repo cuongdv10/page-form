@@ -1,207 +1,145 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chọn Fanpage để đăng bài</title>
-    <style>
-        /* Các kiểu CSS cho giao diện */
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .search-box {
-            margin-bottom: 20px;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 8px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-        }
-        .checkbox-item input {
-            margin-right: 10px;
-        }
-        .btn-submit {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-        }
-        .btn-submit:hover {
-            background-color: #0056b3;
-        }
-        .message-box {
-            text-align: center;
-            margin-top: 10px;
-            color: red;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chọn Fanpage</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .logo { text-align: center; margin-bottom: 24px; }
+    .logo img { max-height: 60px; }
+    h2 { text-align: center; font-size: 22px; margin-bottom: 20px; color: #333; }
+    .search-box input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+    .checkbox-item { display: flex; align-items: center; margin: 10px 0; }
+    .checkbox-item input { margin-right: 10px; }
+    .btn-submit { width: 100%; padding: 14px; background: #007bff; border: none; border-radius: 8px; color: white; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    .btn-submit:hover { background: #0056b3; }
+    .message-box { text-align: center; margin-top: 10px; color: red; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="logo">
-        <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo" width="200">
+  <div class="logo">
+    <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo" width="200">
+  </div>
+
+  <h2>📝 Chọn các Fanpage để đăng bài</h2>
+
+  <form id="form">
+    <input type="hidden" id="resumeUrl" />
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." />
     </div>
+    <div id="pageContainer"></div>
+    
+    <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
+  </form>
 
-    <h3>📝 Chọn các Fanpage để đăng bài</h3>
-
-    <form id="form">
-        <input type="hidden" id="resumeUrl" value="{{resumeUrl}}" />
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Tìm fanpage..." />
-        </div>
-
-        <div id="pageContainer"></div>
-        
-        <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
-    </form>
-
-    <div id="messageBox" class="message-box"></div>
+  <div id="messageBox" class="message-box"></div>
 </div>
 
 <script>
-    // Khai báo API URL
-    const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
+  // Đảm bảo khai báo apiUrl đúng trước khi sử dụng
+  const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
 
-    // Lấy resumeUrl từ URL
-    const params = new URLSearchParams(window.location.search);
-    const resumeUrl = params.get("resumeUrl");
+  // Lấy resumeUrl từ URL
+  const params = new URLSearchParams(window.location.search);
+  const resumeUrl = params.get("resumeUrl");
 
-    // Kiểm tra nếu không có resumeUrl
-    if (!resumeUrl) {
-        alert("Không có resumeUrl. Vui lòng kiểm tra lại URL.");
-    }
+  // Kiểm tra nếu không có resumeUrl
+  if (!resumeUrl) {
+    alert("Không có resumeUrl. Vui lòng kiểm tra lại URL.");
+  }
 
-    // Gửi yêu cầu đến API và xử lý dữ liệu
-    fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-        .then(response => response.json())
-        .then(data => renderForm(data))
-        .catch(error => {
-            console.error('Lỗi khi tải dữ liệu:', error);
-            document.getElementById("messageBox").innerHTML = "❌ Lỗi khi tải dữ liệu.";
-        });
-
-    // Hàm để render danh sách fanpage
-    function renderForm(data) {
-        const { pages, iconMap } = data;
-        const pageContainer = document.getElementById("pageContainer");
-
-        if (!pages || pages.length === 0) {
-            pageContainer.innerHTML = "<div style='color: red;'>❌ Không có fanpage nào.</div>";
-            return;
-        }
-
-        const grouped = {};
-        pages.forEach(page => {
-            if (!grouped[page.platform]) {
-                grouped[page.platform] = [];
-            }
-            grouped[page.platform].push(page);
-        });
-
-        for (const platform in grouped) {
-            const group = grouped[platform];
-            const groupElement = document.createElement('div');
-            groupElement.className = 'group';
-
-            const icon = iconMap[platform];
-            groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
-
-            group.forEach(page => {
-                const pageElement = document.createElement('label');
-                pageElement.className = 'checkbox-item';
-                pageElement.innerHTML = `
-                    <input type="checkbox" name="pages" value="${page.name}|${page.id}">
-                    <a href="${page.url}" target="_blank">${page.displayName}</a>
-                `;
-                groupElement.appendChild(pageElement);
-            });
-
-            pageContainer.appendChild(groupElement);
-        }
-
-        // Thêm sự kiện lọc fanpage theo từ khóa
-        document.getElementById("searchInput").addEventListener("input", filterPages);
-
-        // Thêm sự kiện cho các checkbox
-        document.querySelectorAll("input[name='pages']").forEach(checkbox => {
-            checkbox.addEventListener("change", updateSelectedPages);
-        });
-    }
-
-    // Hàm lọc các fanpage theo từ khóa
-    function filterPages(event) {
-        const searchText = event.target.value.toLowerCase();
-        document.querySelectorAll(".checkbox-item").forEach(item => {
-            const pageName = item.innerText.toLowerCase();
-            item.style.display = pageName.includes(searchText) ? 'block' : 'none';
-        });
-    }
-
-    // Cập nhật các checkbox đã chọn
-    function updateSelectedPages() {
-        document.querySelectorAll(".checkbox-item").forEach(item => {
-            const checkbox = item.querySelector("input");
-            item.classList.toggle("selected", checkbox.checked);
-        });
-    }
-
-    // Xử lý khi submit form
-    document.getElementById("form").addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
-
-        if (!selectedPages.length) {
-            document.getElementById("messageBox").innerHTML = "⚠️ Vui lòng chọn ít nhất một fanpage.";
-            return;
-        }
-
-        const data = {
-            pages: selectedPages
-        };
-
-        // Gửi thông tin lên API resumeUrl
-        fetch(resumeUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(() => {
-            document.getElementById("messageBox").innerHTML = "✅ Dữ liệu đã được gửi thành công!";
-            setTimeout(() => window.close(), 3000); // Đóng cửa sổ sau 3 giây
-        })
-        .catch(error => {
-            document.getElementById("messageBox").innerHTML = "❌ Đã xảy ra lỗi khi gửi dữ liệu.";
-        });
+  // Gửi yêu cầu tới API và xử lý dữ liệu
+  fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
+    .then(response => {
+      console.log("Đang tải dữ liệu từ API...");  // Log khi bắt đầu tải dữ liệu
+      if (!response.ok) throw new Error("Lỗi API");
+      return response.json();  // Chuyển đổi phản hồi thành JSON
+    })
+    .then(data => {
+      console.log("Dữ liệu từ API:", data);  // Log toàn bộ dữ liệu trả về
+      renderForm(data);  // Gọi hàm để render dữ liệu
+    })
+    .catch(error => {
+      console.error("Lỗi khi tải dữ liệu từ API:", error);  // Log lỗi nếu có
+      document.getElementById("messageBox").innerHTML = "❌ Lỗi khi tải dữ liệu.";
     });
+
+  // Hàm render danh sách fanpage
+  function renderForm(data) {
+    const { pages, iconMap } = data;
+    const pageContainer = document.getElementById("pageContainer");
+
+    if (!pages || pages.length === 0) {
+      pageContainer.innerHTML = "<div style='color: red;'>❌ Không có fanpage nào.</div>";
+      return;
+    }
+
+    const grouped = {};
+    pages.forEach(page => {
+      if (!grouped[page.platform]) {
+        grouped[page.platform] = [];
+      }
+      grouped[page.platform].push(page);
+    });
+
+    for (const platform in grouped) {
+      const group = grouped[platform];
+      const groupElement = document.createElement('div');
+      groupElement.className = 'group';
+
+      const icon = iconMap[platform];
+      groupElement.innerHTML = `<h3><img src="${icon}" width="20" /> ${platform}</h3>`;
+
+      group.forEach(page => {
+        const pageElement = document.createElement('label');
+        pageElement.className = 'checkbox-item';
+        pageElement.innerHTML = `
+          <input type="checkbox" name="pages" value="${page.name}|${page.id}">
+          <a href="${page.url}" target="_blank">${page.displayName}</a>
+        `;
+        groupElement.appendChild(pageElement);
+      });
+
+      pageContainer.appendChild(groupElement);
+    }
+  }
+
+  // Xử lý khi submit form
+  document.getElementById("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
+
+    if (!selectedPages.length) {
+      document.getElementById("messageBox").innerHTML = "⚠️ Vui lòng chọn ít nhất một fanpage.";
+      return;
+    }
+
+    const data = {
+      pages: selectedPages
+    };
+
+    // Gửi thông tin lên resumeUrl
+    fetch(resumeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(() => {
+      document.getElementById("messageBox").innerHTML = "✅ Dữ liệu đã được gửi thành công!";
+      setTimeout(() => window.close(), 3000); // Đóng cửa sổ sau 3 giây
+    })
+    .catch(error => {
+      console.error("Lỗi khi gửi dữ liệu:", error);
+      document.getElementById("messageBox").innerHTML = "❌ Đã xảy ra lỗi khi gửi dữ liệu.";
+    });
+  });
 </script>
 
 </body>
