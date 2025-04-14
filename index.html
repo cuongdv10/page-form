@@ -5,17 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chọn Fanpage</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-    .container { max-width: 600px; margin: auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .logo { text-align: center; margin-bottom: 24px; }
-    .logo img { max-height: 60px; }
-    h2 { text-align: center; font-size: 22px; margin-bottom: 20px; color: #333; }
-    .search-box input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
-    .checkbox-item { display: flex; align-items: center; margin: 10px 0; }
-    .checkbox-item input { margin-right: 10px; }
-    .btn-submit { width: 100%; padding: 14px; background: #007bff; border: none; border-radius: 8px; color: white; font-size: 16px; cursor: pointer; margin-top: 20px; }
-    .btn-submit:hover { background: #0056b3; }
-    .message-box { text-align: center; margin-top: 10px; color: red; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo img {
+      max-height: 60px;
+    }
+    h2 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .filter-box {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background-color: #f7f7f7;
+      transition: background 0.2s;
+    }
+    .checkbox-item input {
+      margin-right: 10px;
+    }
+    .checkbox-item.selected {
+      background-color: #e3f6ff;
+      border: 1px solid #0099ff;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .btn-submit:hover {
+      background: #0056b3;
+    }
+    .message-box {
+      text-align: center;
+      margin-top: 10px;
+      color: red;
+    }
   </style>
 </head>
 <body>
@@ -32,8 +95,15 @@
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm fanpage..." />
     </div>
+
+    <!-- Bộ lọc nền tảng -->
+    <div class="filter-box">
+      <button type="button" id="facebookFilter">Facebook</button>
+      <button type="button" id="instagramFilter">Instagram</button>
+      <button type="button" id="tiktokFilter">Tiktok</button>
+    </div>
+
     <div id="pageContainer"></div>
-    
     <button type="submit" class="btn-submit">✅ Gửi thông tin</button>
   </form>
 
@@ -47,6 +117,7 @@
   // Lấy resumeUrl từ URL
   const params = new URLSearchParams(window.location.search);
   const resumeUrl = params.get("resumeUrl");
+  document.getElementById("resumeUrl").value = resumeUrl;
 
   // Kiểm tra nếu không có resumeUrl
   if (!resumeUrl) {
@@ -55,17 +126,13 @@
 
   // Gửi yêu cầu tới API và xử lý dữ liệu
   fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
-    .then(response => {
-      console.log("Đang tải dữ liệu từ API...");  // Log khi bắt đầu tải dữ liệu
-      if (!response.ok) throw new Error("Lỗi API");
-      return response.json();  // Chuyển đổi phản hồi thành JSON
-    })
+    .then(response => response.json())
     .then(data => {
-      console.log("Dữ liệu từ API:", data);  // Log toàn bộ dữ liệu trả về
-      renderForm(data);  // Gọi hàm để render dữ liệu
+      console.log("Dữ liệu từ API:", data);
+      renderForm(data);
     })
     .catch(error => {
-      console.error("Lỗi khi tải dữ liệu từ API:", error);  // Log lỗi nếu có
+      console.error("Lỗi khi tải dữ liệu từ API:", error);
       document.getElementById("messageBox").innerHTML = "❌ Lỗi khi tải dữ liệu.";
     });
 
@@ -87,6 +154,7 @@
       grouped[page.platform].push(page);
     });
 
+    // Render các platform
     for (const platform in grouped) {
       const group = grouped[platform];
       const groupElement = document.createElement('div');
@@ -98,17 +166,59 @@
       group.forEach(page => {
         const pageElement = document.createElement('label');
         pageElement.className = 'checkbox-item';
-        pageElement.innerHTML = `<input type="checkbox" name="pages" value="${page.name}|${page.id}"><a href="${page.url}" target="_blank">${page.displayName}</a>`;
+        pageElement.innerHTML = `
+          <input type="checkbox" name="pages" value="${page.name}|${page.id}">
+          <a href="${page.url}" target="_blank">${page.displayName}</a>
+        `;
         groupElement.appendChild(pageElement);
       });
 
       pageContainer.appendChild(groupElement);
     }
+
+    // Sự kiện chọn nền tảng
+    document.getElementById("facebookFilter").addEventListener("click", () => filterByPlatform('Facebook'));
+    document.getElementById("instagramFilter").addEventListener("click", () => filterByPlatform('Instagram'));
+    document.getElementById("tiktokFilter").addEventListener("click", () => filterByPlatform('Tiktok'));
+    
+    // Sự kiện tìm kiếm
+    document.getElementById("searchInput").addEventListener("input", filterPages);
+
+    // Cập nhật sự kiện chọn
+    document.querySelectorAll("input[name='pages']").forEach(cb => {
+      cb.addEventListener("change", updateHighlight);
+    });
+  }
+
+  // Bộ lọc theo nền tảng
+  function filterByPlatform(platform) {
+    document.querySelectorAll(".group").forEach(group => {
+      const platformName = group.querySelector('h3').innerText;
+      group.style.display = platformName.includes(platform) ? 'block' : 'none';
+    });
+  }
+
+  // Cập nhật danh sách đã chọn
+  function updateHighlight() {
+    document.querySelectorAll(".checkbox-item").forEach(label => {
+      const cb = label.querySelector("input");
+      label.classList.toggle("selected", cb.checked);
+    });
+  }
+
+  // Lọc fanpage theo từ khóa
+  function filterPages(event) {
+    const keyword = event.target.value.toLowerCase();
+    document.querySelectorAll(".checkbox-item").forEach(item => {
+      const name = item.innerText.toLowerCase();
+      item.style.display = name.includes(keyword) ? 'block' : 'none';
+    });
   }
 
   // Xử lý khi submit form
   document.getElementById("form").addEventListener("submit", function (e) {
     e.preventDefault();
+
     const selectedPages = Array.from(document.querySelectorAll("input[name='pages']:checked")).map(cb => cb.value);
 
     if (!selectedPages.length) {
