@@ -125,7 +125,7 @@
 </div>
 <script>
   const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
-  const apiUrl = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // Thay YOUR_SCRIPT_ID
+  const apiUrl = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec"; // Thay YOUR_SCRIPT_ID
   document.getElementById("resumeUrl").value = resumeUrl;
 
   fetch(`${apiUrl}?resumeUrl=${encodeURIComponent(resumeUrl)}`)
