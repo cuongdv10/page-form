@@ -55,7 +55,7 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const apiUrl = `https://script.google.com/macros/s/YOUR_SCRIPT_DEPLOYED_URL/exec?resumeUrl=${urlParams.get('resumeUrl') || ''}`;
+    const apiUrl = `https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec?resumeUrl=${urlParams.get('resumeUrl') || ''}`;
 
     fetch(apiUrl)
       .then(res => res.json())
