@@ -92,7 +92,8 @@
     </div>
 
     <form id="pageForm">
-      <div id="pageList"></div>
+      <div id="loading">Đang tải danh sách fanpage...</div>
+      <div id="pageList" style="display:none"></div>
       <button type="submit" class="submit-btn">✅ Gửi thông tin</button>
       <div id="messageBox"></div>
     </form>
@@ -102,9 +103,10 @@
     const pageListDiv = document.getElementById("pageList");
     const searchInput = document.getElementById("search");
     const filterSelect = document.getElementById("platformFilter");
+    const loadingDiv = document.getElementById("loading");
 
     const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
-    const sheetApi = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec"; // <-- Thay bằng đúng URL Google Apps Script của bạn
+    const sheetApi = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec";
 
     let rawPages = [];
 
@@ -122,9 +124,11 @@
           filterSelect.appendChild(opt);
         });
 
+        loadingDiv.style.display = "none";
+        pageListDiv.style.display = "block";
         renderPages();
       } catch (err) {
-        pageListDiv.innerHTML = "<p style='color:red'>Không thể tải danh sách fanpage.</p>";
+        loadingDiv.textContent = "❌ Không thể tải danh sách fanpage.";
       }
     }
 
@@ -188,7 +192,7 @@
           mode: "no-cors",
           body: JSON.stringify({ pages: selected })
         });
-        document.getElementById("messageBox").textContent = "✅ Gửi thành công! Tab sẽ đóng sau 3 giây.";
+        document.getElementById("messageBox").textContent = "✅ Gửi thành công! Tab sẽ tự động đóng sau 3 giây.";
         setTimeout(() => window.close(), 3000);
       } catch (err) {
         document.getElementById("messageBox").textContent = "❌ Gửi thất bại.";
