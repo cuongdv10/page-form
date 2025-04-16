@@ -17,7 +17,7 @@
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      max-width: 600px;
+      max-width: 700px;
       width: 100%;
     }
     h2 {
@@ -25,10 +25,14 @@
       margin-bottom: 20px;
       color: #333;
     }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
+    .controls {
+      display: flex;
+      gap: 10px;
       margin-bottom: 15px;
+    }
+    .controls input[type="text"], .controls select {
+      flex: 1;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
     }
@@ -78,8 +82,14 @@
 <body>
   <div class="container">
     <img src="https://tocnoi.vn/wp-content/uploads/2023/09/1-e1695052909825.png" alt="Logo" height="40" style="display:block;margin:0 auto 10px;">
-    <h2>✍️ Chọn các Fanpage để đăng bài</h2>
-    <input type="text" id="search" placeholder="🔍 Tìm kiếm fanpage...">
+    <h2>📝 Chọn các Fanpage để đăng bài</h2>
+
+    <div class="controls">
+      <input type="text" id="search" placeholder="🔍 Tìm kiếm fanpage...">
+      <select id="platformFilter">
+        <option value="">Tất cả nền tảng</option>
+      </select>
+    </div>
 
     <form id="pageForm">
       <div id="pageList"></div>
@@ -91,6 +101,7 @@
   <script>
     const pageListDiv = document.getElementById("pageList");
     const searchInput = document.getElementById("search");
+    const filterSelect = document.getElementById("platformFilter");
 
     const resumeUrl = new URLSearchParams(window.location.search).get("resumeUrl");
     const sheetApi = "https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec"; // <-- Thay bằng đúng URL Google Apps Script của bạn
@@ -102,15 +113,29 @@
         const res = await fetch(sheetApi + `?resumeUrl=${encodeURIComponent(resumeUrl)}`);
         const data = await res.json();
         rawPages = data.pages;
-        renderPages(rawPages);
+
+        const platforms = [...new Set(rawPages.map(p => p.platform))];
+        platforms.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = p;
+          filterSelect.appendChild(opt);
+        });
+
+        renderPages();
       } catch (err) {
         pageListDiv.innerHTML = "<p style='color:red'>Không thể tải danh sách fanpage.</p>";
       }
     }
 
-    function renderPages(pages) {
+    function renderPages() {
+      const keyword = searchInput.value.toLowerCase();
+      const platformFilter = filterSelect.value;
       const groups = {};
-      pages.forEach(p => {
+
+      rawPages.forEach(p => {
+        if ((platformFilter && p.platform !== platformFilter) ||
+            (keyword && !p.displayName.toLowerCase().includes(keyword))) return;
         if (!groups[p.platform]) groups[p.platform] = [];
         groups[p.platform].push(p);
       });
@@ -123,12 +148,12 @@
 
         const header = document.createElement("div");
         header.className = "platform-header";
-        header.innerHTML = `${platform} <button class="toggle-btn" onclick="toggleAll('${platform}', true)">Chọn tất cả</button>`;
+        header.innerHTML = `${platform} <button class="toggle-btn" onclick="toggleAll('${platform}', this)">Chọn tất cả</button>`;
 
         const list = document.createElement("div");
         pages.forEach(p => {
           const id = `cb-${p.name}`;
-          list.innerHTML += `<label><input type="checkbox" name="pages" value="${p.name}|${p.id}|${p.platform}" id="${id}"> ${p.displayName}</label>`;
+          list.innerHTML += `<label><input type="checkbox" name="pages" data-json='${JSON.stringify(p)}'> ${p.displayName}</label>`;
         });
 
         groupDiv.appendChild(header);
@@ -137,22 +162,21 @@
       });
     }
 
-    function toggleAll(platform, select) {
+    function toggleAll(platform, btn) {
       const group = document.querySelector(`.platform-group[data-platform='${platform.toLowerCase()}']`);
       if (!group) return;
-      group.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = select);
+      const checkboxes = group.querySelectorAll("input[type='checkbox']");
+      const allChecked = [...checkboxes].every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+      btn.textContent = allChecked ? 'Chọn tất cả' : 'Bỏ chọn tất cả';
     }
 
-    searchInput.addEventListener("input", () => {
-      const keyword = searchInput.value.toLowerCase();
-      document.querySelectorAll(".platform-group label").forEach(label => {
-        label.style.display = label.textContent.toLowerCase().includes(keyword) ? "block" : "none";
-      });
-    });
+    searchInput.addEventListener("input", renderPages);
+    filterSelect.addEventListener("change", renderPages);
 
     document.getElementById("pageForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const selected = [...document.querySelectorAll("input[name='pages']:checked")].map(el => el.value);
+      const selected = [...document.querySelectorAll("input[name='pages']:checked")].map(el => JSON.parse(el.dataset.json));
       if (!resumeUrl || selected.length === 0) {
         document.getElementById("messageBox").textContent = "❌ Vui lòng chọn ít nhất 1 fanpage.";
         return;
