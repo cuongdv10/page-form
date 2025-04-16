@@ -8,12 +8,30 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       padding: 2rem;
-      background: #f9f9f9;
+      background: #f4f4f4;
       color: #333;
     }
     h2 {
       text-align: center;
       color: #1d4ed8;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .controls input[type="text"], .controls select {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .controls input[type="text"] {
+      flex: 1;
+      min-width: 200px;
     }
     .platform-group {
       background: #fff;
@@ -23,6 +41,9 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .platform-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 1.25rem;
       font-weight: bold;
       margin-bottom: 0.5rem;
@@ -33,15 +54,14 @@
       display: block;
       margin: 0.4rem 0;
     }
-    .submit-btn {
-      display: block;
-      width: 100%;
+    .submit-btn, .toggle-btn {
+      display: inline-block;
       background: #1d4ed8;
       color: white;
       border: none;
-      padding: 0.75rem;
+      padding: 0.5rem 1rem;
       border-radius: 6px;
-      font-size: 1rem;
+      font-size: 0.9rem;
       cursor: pointer;
     }
   </style>
@@ -49,42 +69,89 @@
 <body>
   <h2>📝 Chọn các Fanpage để đăng bài</h2>
   <form method="POST" id="pageForm">
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Tìm kiếm page..." />
+      <select id="platformFilter">
+        <option value="">Tất cả nền tảng</option>
+      </select>
+    </div>
     <div id="formContainer">Đang tải dữ liệu...</div>
     <input type="submit" class="submit-btn" value="Tiếp tục">
   </form>
 
   <script>
+    let allPages = [];
+
     const urlParams = new URLSearchParams(window.location.search);
     const apiUrl = `https://script.google.com/macros/s/AKfycbztNHrxAi2Gi5yyEYeES1iVbkZhKn6zTXuyepF1nSXfZDe2ntqn_i-65WXEnEwqvu9S/exec?resumeUrl=${urlParams.get('resumeUrl') || ''}`;
 
     fetch(apiUrl)
       .then(res => res.json())
       .then(({ pages }) => {
-        const grouped = {};
-        pages.forEach(p => {
-          if (!grouped[p.platform]) grouped[p.platform] = [];
-          grouped[p.platform].push(p);
+        allPages = pages;
+        const platforms = [...new Set(pages.map(p => p.platform))];
+        const filter = document.getElementById("platformFilter");
+        platforms.forEach(p => {
+          const option = document.createElement("option");
+          option.value = p;
+          option.textContent = p;
+          filter.appendChild(option);
         });
-
-        const container = document.getElementById("formContainer");
-        container.innerHTML = '';
-
-        Object.entries(grouped).forEach(([platform, items]) => {
-          const group = document.createElement("div");
-          group.className = "platform-group";
-          group.innerHTML = `<div class="platform-title">${platform}</div><div class="checkbox-list"></div>`;
-          const list = group.querySelector(".checkbox-list");
-          items.forEach(({ displayName, name, id }) => {
-            const label = document.createElement("label");
-            label.innerHTML = `<input type="checkbox" name="pages" value="${name}|${id}|${platform}"> ${displayName}`;
-            list.appendChild(label);
-          });
-          container.appendChild(group);
-        });
+        renderPages();
       })
       .catch(() => {
         document.getElementById("formContainer").innerHTML = '<div style="color:red">❌ Không thể tải danh sách page. Hãy kiểm tra lại kết nối!</div>';
       });
+
+    function renderPages() {
+      const container = document.getElementById("formContainer");
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      const selectedPlatform = document.getElementById("platformFilter").value;
+      const grouped = {};
+
+      allPages.forEach(p => {
+        if ((selectedPlatform && p.platform !== selectedPlatform) ||
+            (keyword && !p.displayName.toLowerCase().includes(keyword))) return;
+        if (!grouped[p.platform]) grouped[p.platform] = [];
+        grouped[p.platform].push(p);
+      });
+
+      container.innerHTML = '';
+      Object.entries(grouped).forEach(([platform, items], index) => {
+        const group = document.createElement("div");
+        group.className = "platform-group";
+
+        const toggleId = `toggle-${index}`;
+
+        group.innerHTML = `
+          <div class="platform-title">
+            ${platform}
+            <button type="button" class="toggle-btn" id="${toggleId}" onclick="toggleSelect('${platform}', '${toggleId}')">Chọn tất cả</button>
+          </div>
+          <div class="checkbox-list" data-platform="${platform}"></div>
+        `;
+
+        const list = group.querySelector(".checkbox-list");
+        items.forEach(({ displayName, name, id, platform }) => {
+          const label = document.createElement("label");
+          label.innerHTML = `<input type="checkbox" name="pages" value="${name}|${id}|${platform}"> ${displayName}`;
+          list.appendChild(label);
+        });
+
+        container.appendChild(group);
+      });
+    }
+
+    function toggleSelect(platform, toggleId) {
+      const checkboxes = document.querySelectorAll(`.checkbox-list[data-platform='${platform}'] input[type='checkbox']`);
+      const allChecked = [...checkboxes].every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+      const toggleBtn = document.getElementById(toggleId);
+      toggleBtn.textContent = allChecked ? 'Chọn tất cả' : 'Bỏ chọn tất cả';
+    }
+
+    document.getElementById("searchInput").addEventListener("input", renderPages);
+    document.getElementById("platformFilter").addEventListener("change", renderPages);
   </script>
 </body>
 </html>
